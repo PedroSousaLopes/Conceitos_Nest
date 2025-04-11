@@ -1,21 +1,23 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  ParseBoolPipe,
-  ParseIntPipe,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-  Query,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpCode,
+    HttpStatus,
+    Param,
+    Patch,
+    Post,
+    Query,
+    UseInterceptors,
 } from '@nestjs/common';
 import { RecadosService } from './recados.service';
 import { CreateRecadoDto } from './dto/create-recado.dto';
 import { UpdateRecadoDto } from './dto/update-recado.dto';
+import { PaginationDto } from 'src/app/common/dto/pagination.dto';
+import { AddHeaderInterceptor } from 'src/app/common/interceptors/add-header-interceptor';
+import { TimingConnectionInterceptor } from 'src/app/common/interceptors/timing-connections-interceptor';
+import { ErrorHandlingInterceptor } from 'src/app/common/interceptors/error-handling.interceptor';
 
 // CRUD
 // Create -> POST -> Criar um recado
@@ -32,33 +34,34 @@ import { UpdateRecadoDto } from './dto/update-recado.dto';
 
 @Controller('recados')
 export class RecadosController {
-  constructor(private readonly recadosService: RecadosService) {}
+    constructor(private readonly recadosService: RecadosService) {}
 
-  @HttpCode(HttpStatus.OK)
-  @Get()
-  findAll(@Query() pagination: any) {
-    const { limit = 10, offset = 0 } = pagination;
-    // return `Retorna todos os recados. Limit=${limit}, Offset=${offset}.`;
-    return this.recadosService.findAll();
-  }
+    @HttpCode(HttpStatus.OK)
+    @UseInterceptors(TimingConnectionInterceptor, ErrorHandlingInterceptor)
+    @Get()
+    async findAll(@Query() paginationDto: PaginationDto) {
+        // return `Retorna todos os recados. Limit=${limit}, Offset=${offset}.`;
+        const recados = await this.recadosService.findAll(paginationDto);
+        return recados;
+    }
+    @UseInterceptors(AddHeaderInterceptor, ErrorHandlingInterceptor)
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.recadosService.findOne(+id);
+    }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.recadosService.findOne(id);
-  }
+    @Post()
+    create(@Body() createRecadoDto: CreateRecadoDto) {
+        return this.recadosService.create(createRecadoDto);
+    }
 
-  @Post()
-  create(@Body() createRecadoDto: CreateRecadoDto) {
-    return this.recadosService.create(createRecadoDto);
-  }
+    @Patch(':id')
+    update(@Param('id') id: number, @Body() updateRecadoDto: UpdateRecadoDto) {
+        return this.recadosService.update(id, updateRecadoDto);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRecadoDto: UpdateRecadoDto) {
-    return this.recadosService.update(id, updateRecadoDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.recadosService.remove(id);
-  }
+    @Delete(':id')
+    remove(@Param('id') id: number) {
+        return this.recadosService.remove(id);
+    }
 }
